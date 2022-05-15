@@ -398,7 +398,6 @@ We can address these sort of driver specific behaviors by applying a customizer
 to the Java class to add additional behaviors.
 
 .. code-block:: python
-
         @jpype.JImplementationFor("java.sql.PreparedStatement")
         class MyStatement(object):
             @jpype.JOverride(sticky=True, rename='_close')

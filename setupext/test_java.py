@@ -16,14 +16,17 @@
 #   See NOTICE file for details.
 #
 # *****************************************************************************
-import sys
-import os
-import subprocess
-import distutils.cmd
-import distutils.log
 import glob
+import logging
+import os
 import re
 import shlex
+import subprocess
+
+import setuptools.command
+from . import utils
+
+logger = utils.getLogger("jpype_setup.test_java")
 
 
 def getJavaVersion(javac):
@@ -65,7 +68,7 @@ def compileJava():
     return cmd
 
 
-class TestJavaCommand(distutils.cmd.Command):
+class TestJavaCommand(setuptools.Command):
     """A custom command to create jar file during test."""
 
     description = 'run javac to make test harness'
@@ -73,18 +76,16 @@ class TestJavaCommand(distutils.cmd.Command):
 
     def initialize_options(self):
         """Set default values for options."""
-        pass
 
     def finalize_options(self):
         """Post-process options."""
-        pass
 
     def run(self):
         """Run command."""
         if os.path.exists(os.path.join("test", "classes")):
-            distutils.log.info("Skip building Java testbench")
+            logger.info("Skip building Java testbench")
             return
         cmdStr = compileJava()
-        self.announce("  %s" % " ".join(cmdStr), level=distutils.log.INFO)
+        self.announce("  %s" % " ".join(cmdStr), level=logging.INFO)
         subprocess.check_call(cmdStr)
         subprocess.check_call(shlex.split("javadoc -Xdoclint:none test/harness/jpype/doc/Test.java -d test/classes/"))

@@ -16,19 +16,18 @@
 #   See NOTICE file for details.
 #
 # *****************************************************************************
-import os
-from setuptools.command.build_ext import build_ext
-import sys
-import subprocess
-import distutils.cmd
-import distutils.log
-from distutils.errors import DistutilsPlatformError
-from distutils.dir_util import copy_tree
 import glob
-import re
+import os
 import shlex
 import shutil
-import sysconfig
+import subprocess
+
+from setuptools.command.build_ext import build_ext
+from setuptools.errors import PlatformError
+
+from . import utils
+
+logger = utils.getLogger("jpype_setup.bdist_ext")
 
 
 # This setup option constructs a prototype Makefile suitable for compiling
@@ -186,11 +185,6 @@ class BuildExtCommand(build_ext):
         self.jar = False
         import distutils.sysconfig
         cfg_vars = distutils.sysconfig.get_config_vars()
-        replacement = {
-            '-Wstrict-prototypes': '',
-            '-Wimplicit-function-declaration': '',
-        }
-        tracing = self.distribution.enable_tracing
 
         # Arguments to remove so we set debugging and optimization level
         remove_args = ['-O0', '-O1', '-O2', '-O3', '-g']
@@ -203,7 +197,7 @@ class BuildExtCommand(build_ext):
 
             args = v.split()
             for r in remove_args:
-                args = list(filter((r).__ne__, args))
+                args = list(filter(r.__ne__, args))
 
             cfg_vars[k] = " ".join(args)
         super().initialize_options()
@@ -264,7 +258,7 @@ class BuildExtCommand(build_ext):
             # Always copy, even if source is older than destination, to ensure
             # that the right extensions for the current Python/platform are
             # used.
-            distutils.file_util.copy_file(
+            self.copy_file(
                 src_filename, dest_filename, verbose=self.verbose,
                 dry_run=self.dry_run
             )
@@ -292,15 +286,15 @@ class BuildExtCommand(build_ext):
             src = os.path.join('native', 'jars')
             dest = os.path.dirname(self.get_ext_fullpath("JAVA"))
             if os.path.exists(src):
-                distutils.log.info("Using Jar cache")
-                copy_tree(src, dest)
+                logger.info("Using Jar cache")
+                self.copy_tree(src, dest)
                 return
 
         classpath = "."
         if ext.libraries:
             classpath = os.path.pathsep.join(ext.libraries)
 
-        distutils.log.info(
+        logger.info(
             "Jar cache is missing, using --enable-build-jar to recreate it.")
 
         coverage = self.distribution.enable_coverage
@@ -316,11 +310,11 @@ class BuildExtCommand(build_ext):
             cmd1 = shlex.split('%s -cp "%s" -d "%s" -g:none -source %s -target %s -encoding UTF-8' %
                                (javac, classpath, build_dir, target_version, target_version))
             cmd1.extend(ext.sources)
-            debug = "-g:none"
-            if coverage:
-                debug = "-g:lines,vars,source"
+            #debug = "-g:none"
+            #if coverage:
+            #    debug = "-g:lines,vars,source"
             os.makedirs("build/classes", exist_ok=True)
-            self.announce("  %s" % " ".join(cmd1), level=distutils.log.INFO)
+            logger.info("  %s" % " ".join(cmd1))
             subprocess.check_call(cmd1)
             try:
                 for file in glob.iglob("native/java/**/*.*", recursive=True):
@@ -334,9 +328,9 @@ class BuildExtCommand(build_ext):
                 pass
             cmd3 = shlex.split(
                 '%s cvf "%s" -C "%s" .' % (jar, jarFile, build_dir))
-            self.announce("  %s" % " ".join(cmd3), level=distutils.log.INFO)
+            logger.info("  %s" % " ".join(cmd3))
             subprocess.check_call(cmd3)
 
         except subprocess.CalledProcessError as exc:
-            distutils.log.error(exc.output)
-            raise DistutilsPlatformError("Error executing {}".format(exc.cmd))
+            logger.error(exc.output)
+            raise PlatformError("Error executing {}".format(exc.cmd))

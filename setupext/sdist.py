@@ -17,10 +17,14 @@
 #
 # *****************************************************************************
 import os
-import distutils
-from distutils.dir_util import copy_tree, remove_tree, mkpath
-from distutils.file_util import copy_file
+import shutil
+
+import setuptools
+import setuptools.errors
 from setuptools.command.sdist import sdist
+from . import utils
+
+logger = utils.getLogger("jpype_setup.sdist")
 
 # Customization of the sdist
 
@@ -49,14 +53,14 @@ class BuildSourceDistribution(sdist):
         # Also build the test harness files
         self.run_command("test_java")
         if not os.path.exists(jarFile):
-            distutils.log.error("Jar source file is missing from build")
-            raise distutils.errors.DistutilsPlatformError(
+            logger.error("Jar source file is missing from build")
+            raise setuptools.errors.PlatformError(
                 "Error copying jar file")
-        mkpath(dest)
-        copy_file(jarFile, dest)
+        self.mkpath(dest)
+        self.copy_file(jarFile, dest)
 
         # Collect the sources
         sdist.run(self)
 
         # Clean up the jar cache after sdist
-        remove_tree(dest)
+        shutil.rmtree(dest, ignore_errors=True)

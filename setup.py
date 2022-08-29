@@ -19,12 +19,10 @@
 # *****************************************************************************
 import sys
 from pathlib import Path
-from setuptools import setup
-from setuptools import Extension
-import glob
+
+from setuptools import setup, Extension
 
 import setupext
-
 
 if '--android' in sys.argv:
     platform = 'android'
@@ -47,8 +45,8 @@ jpypeJar = Extension(name="org.jpype",
                      libraries=["lib/asm-8.0.1.jar"]
                      )
 
-
-setup(
+if __name__ == "__main__":
+    setup(
     name='JPype1',
     version='1.4.1_dev0',
     description='A Python to Java bridge.',

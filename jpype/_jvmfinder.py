@@ -320,10 +320,15 @@ class DarwinJVMFinder(LinuxJVMFinder):
         """
         import platform
         import subprocess
-        from distutils.version import StrictVersion
+        import sys
 
-        current = StrictVersion(platform.mac_ver()[0][:4])
-        if current >= StrictVersion('10.6') and current < StrictVersion('10.9'):
+        if sys.version_info >= (3, 10):
+            from packaging.version import Version
+        else:
+            from distutils.version import Version
+
+        current = Version(platform.mac_ver()[0][:4])
+        if Version('10.6') <= current < Version('10.9'):
             return subprocess.check_output(
                 ['/usr/libexec/java_home']).strip()
 

@@ -26,9 +26,23 @@ def read_utf8(path, *parts):
     return codecs.open(filename, encoding='utf-8').read()
 
 
-def find_sources(roots=[]):
+def find_sources(roots=None):
+    if not roots:
+        roots = []
     cpp_files = []
     for root in roots:
         for filename in glob.iglob(str(root)):
             cpp_files.append(filename)
     return cpp_files
+
+def getLogger(name):
+    import logging
+    if not getLogger._configure_called:
+        from setuptools.logging import configure
+        configure()
+        getLogger._configure_called = True
+
+    return logging.getLogger(name)
+
+
+getLogger._configure_called = False
